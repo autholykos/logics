@@ -1,6 +1,6 @@
 # Logic Version Control Installer
 
-This program helps in installing the necessary tools for starting up and maintaining a Logic project fully available to a distributed team of musicians, sound engineers and composers. Its focus is simplicity and avoiding collaborators within a Logic project to having to toss around audio tracks and other deliverables.
+This program helps to install the necessary tools for starting up and maintaining a Logic project fully available to a distributed team of musicians, sound engineers and composers. Its focus is simplicity and avoiding collaborators within a Logic project to having to toss around audio tracks and other deliverables.
 
 ## Prerequisite
 
