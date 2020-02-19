@@ -17,11 +17,26 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
+)
+
+type (
+	Repo struct {
+		Name     string `yaml:"name"`
+		Location string `yaml:"location"`
+	}
+
+	Conf struct {
+		SharedFolder  string `yaml:"sharedfolder"`
+		ProjectFolder string `yaml:"projectfolder"`
+		Repos         []Repo `yaml:"repos,flow"`
+	}
 )
 
 var cfgFile string
@@ -35,6 +50,11 @@ It uses a shared (dropbox) folder as remote repository.
 Internally, files are tracked through git with large file support (git-lfs) and the excellent lfs-folderstore adapter for shared folders.
 For more information visit https://github.com/autholykos/logics
 `,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// silence the annoying help on error
+		cmd.SilenceUsage = true
+	},
+
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
@@ -44,9 +64,20 @@ For more information visit https://github.com/autholykos/logics
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func WriteYaml(conf *Conf) error {
+	m, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(cfgFile, m, 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func init() {
@@ -55,7 +86,7 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.logics.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.logics.yml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -65,7 +96,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		home, err := homedir.Dir()
+		home, err := os.UserHomeDir()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -74,6 +105,7 @@ func initConfig() {
 		// Search config in home directory with name ".logics" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".logics")
+		cfgFile = path.Join(home, ".logics.yml")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
