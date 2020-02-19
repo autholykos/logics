@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 Emanuele Francioni <emanuele@dusk.network>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,123 +23,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/autholykos/logics/pkg/common"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 )
 
-var dropboxFolder, logicFolder, configFile string
-
-type (
-	Conf struct {
-		//TODO: should we support URLs based git-lfs?
-		SharedFolderPath  string `yaml:"shared-folder"`
-		ProjectFolderPath string `yaml:"project-folder"`
-	}
-)
-
-// setupCmd represents the setup command
-var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "setup logics configuration",
-	Long:  `Setup the yaml file used to persist configuration attributes for using logics`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		var result string
-
-		cfg := strings.TrimSpace(viper.ConfigFileUsed())
-		if len(cfg) > 0 {
-			prompt := promptui.Select{
-				Label: fmt.Sprintf("A setup was likely already run (and created the configuration at %s). Do you want to re-run the setup?", cfg),
-				Items: []string{"Nay", "Yay"},
-			}
-			_, yayOrNay, e := prompt.Run()
-			if e != nil {
-				fmt.Println(e)
-				return
-			}
-
-			if yayOrNay != "Yay" {
-				fmt.Println("Okidokey")
-				return
-			}
-		}
-
-		conf := &Conf{}
-		prompt := promptui.Prompt{
-			Label:   "Please input the shared folder path",
-			Default: dropboxFolder,
-		}
-
-		result, err = prompt.Run()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		result = strings.TrimSpace(result)
-
-		if result == "" {
-			result = dropboxFolder
-		}
-
-		if err := validateDir(result); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		fmt.Println("Shared folder set to", result)
-		conf.SharedFolderPath = result
-
-		prompt = promptui.Prompt{
-			Label:   "Please input your project folder",
-			Default: logicFolder,
-		}
-
-		result, err = prompt.Run()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		result = strings.TrimSpace(result)
-
-		if err := validateDir(result); err != nil {
-			sprompt := promptui.Select{
-				Label: fmt.Sprintf("Cannot find %s. Do you want to create it?", result),
-				Items: []string{"Yay", "Nay"},
-			}
-			_, yayOrNay, e := sprompt.Run()
-			if e != nil {
-				fmt.Println(e)
-				return
-			}
-
-			if yayOrNay != "Yay" {
-				fmt.Println(errors.New("Cannot setup without a project folder"))
-				return
-			}
-
-			if err := upsertDir(result); err != nil {
-				fmt.Println(err)
-				return
-			}
-		}
-
-		fmt.Println("Project folder set to", result)
-		conf.ProjectFolderPath = result
-		m, e := yaml.Marshal(conf)
-		if e != nil {
-			fmt.Println(e)
-			return
-		}
-
-		if err := ioutil.WriteFile(configFile, m, 0644); err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("Wrote preferences to", configFile)
-	},
-}
+var dropboxFolder, logicFolder, tmpDir string
 
 func init() {
 	hd, err := os.UserHomeDir()
@@ -148,9 +38,120 @@ func init() {
 	}
 	dropboxFolder = path.Join(hd, "Dropbox", "logic")
 	logicFolder = path.Join(hd, "Music", "Logic")
-	configFile = path.Join(hd, ".logics.yml")
+	tmpDir, _ = ioutil.TempDir("", "logics")
 
 	rootCmd.AddCommand(setupCmd)
+}
+
+// setupCmd represents the setup command
+var setupCmd = &cobra.Command{
+	Use:   "setup",
+	Short: "setup logics configuration",
+	Long:  `Setup the yaml file used to persist configuration attributes for using logics`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		_, err := ExecCmd("git", "--version")
+		if err != nil {
+			return errors.New("no git installation found")
+		}
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return Setup()
+	},
+	PostRunE: func(cmd *cobra.Command, args []string) error {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			return fmt.Errorf("WARNING: could not remove %s", tmpDir)
+		}
+		return nil
+	},
+}
+
+func Setup() error {
+	cfg := strings.TrimSpace(viper.ConfigFileUsed())
+	if len(cfg) > 0 {
+		if !common.YNPrompt(fmt.Sprintf("A setup was likely already run (and created the configuration at %s). Do you want to re-run the setup?", cfg)) {
+			fmt.Println("Okidokey")
+			return nil
+		}
+	}
+
+	conf := &Conf{}
+	sharedDir, err := setupSharedDir()
+	if err != nil {
+		return err
+	}
+	conf.SharedFolder = sharedDir
+
+	projDir, err := setupProjectDir()
+	if err != nil {
+		return err
+	}
+	conf.ProjectFolder = projDir
+
+	if err := WriteYaml(conf); err != nil {
+		return fmt.Errorf("Something went wrong with writing config file %s, %v", cfg, err)
+	}
+	fmt.Println("Preferences saved", cfg)
+
+	if err := common.InstallGitLFS(tmpDir); err != nil {
+		return err
+	}
+	fmt.Println("git-lfs installed", cfg)
+
+	if err := common.InstallLFSFolderstore(tmpDir); err != nil {
+		return err
+	}
+	fmt.Println("lfs-folderstore installed", cfg)
+	return nil
+}
+
+// setupSharedDir sets up the shared repository
+func setupSharedDir() (string, error) {
+	prompt := promptui.Prompt{
+		Label:   "Please input the shared folder path",
+		Default: dropboxFolder,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+	result = strings.TrimSpace(result)
+
+	if result == "" {
+		result = dropboxFolder
+	}
+
+	if err := validateDir(result); err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+// setupProjectDir sets up the folder with the Logic projects
+func setupProjectDir() (string, error) {
+	prompt := promptui.Prompt{
+		Label:   "Please input your project folder",
+		Default: logicFolder,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+	result = strings.TrimSpace(result)
+
+	if err := validateDir(result); err != nil {
+		if !common.YNPrompt(fmt.Sprintf("Cannot find %s. Do you want to create it?", result)) {
+			return "", errors.New("Cannot setup without a project folder")
+		}
+
+		if err := upsertDir(result); err != nil {
+			return "", err
+		}
+	}
+
+	return result, nil
 }
 
 func validateDir(dpath string) error {
