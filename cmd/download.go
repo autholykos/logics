@@ -18,15 +18,44 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/autholykos/logics/pkg/common"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
 	Use:   "download",
-	Short: "download and configure a Logic repository",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("download called")
+	Short: "update your local repository with all changes performed remotely",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := &Conf{}
+		if err := viper.Unmarshal(cfg); err != nil {
+			return err
+		}
+
+		projects := make([]string, len(cfg.Repos))
+		for _, repo := range cfg.Repos {
+			projects = append(projects, repo.Name)
+		}
+
+		prompt := promptui.Select{
+			Label: "select which project you want to sync",
+			Items: projects,
+		}
+
+		i, _, err := prompt.Run()
+		if err != nil {
+			return err
+		}
+
+		out, err := common.ExecCmd("git", "-C", cfg.Repos[i].Location, "pull", "origin", "master")
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(out)
+		return nil
 	},
 }
 

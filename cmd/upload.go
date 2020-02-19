@@ -18,21 +18,53 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/autholykos/logics/pkg/common"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "upload your modification to the remote repository",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := &Conf{}
+		if err := viper.Unmarshal(cfg); err != nil {
+			return err
+		}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("upload called")
+		projects := make([]string, 0)
+		for _, repo := range cfg.Repos {
+			projects = append(projects, repo.Name)
+		}
+
+		prompt := promptui.Select{
+			Label: "select which project you want to sync",
+			Items: projects,
+		}
+
+		i, _, err := prompt.Run()
+		fmt.Println(i)
+		if err != nil {
+			return err
+		}
+
+		msg, _ := cmd.PersistentFlags().GetString("message")
+
+		for _, args := range [][]string{
+			[]string{"add", "-A", "."},
+			[]string{"commit", "-m", msg},
+			[]string{"push", "origin", "master"},
+		} {
+			nargs := append([]string{"-C", cfg.Repos[i].Location}, args...)
+			out, err := common.ExecCmd("git", nargs...)
+			if err != nil {
+				return err
+			}
+			fmt.Println(out)
+		}
+		return nil
 	},
 }
 
@@ -43,9 +75,5 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// uploadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	uploadCmd.PersistentFlags().StringP("message", "m", "committing work on Logic", "specify a message for your commit")
 }

@@ -49,10 +49,11 @@ var setupCmd = &cobra.Command{
 	Short: "setup logics configuration",
 	Long:  `Setup the yaml file used to persist configuration attributes for using logics`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		_, err := ExecCmd("git", "--version")
+		_, err := common.ExecCmd("git", "--version")
 		if err != nil {
 			return errors.New("no git installation found")
 		}
+		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return Setup()

@@ -76,7 +76,7 @@ var installCmd = &cobra.Command{
 		localDir := viper.GetString("targetdir")
 		basename := strings.TrimSuffix(filepath.Base(remoteRepo), ".git")
 		localRepo := path.Join(localDir, basename)
-		localRepoGit := fmt.Sprintf("%s.git", localRepo)
+		//localRepoGit := fmt.Sprintf("%s.git", localRepo)
 
 		if err := cloneRepo(localRepo, remoteRepo); err != nil {
 			return err
@@ -89,7 +89,7 @@ var installCmd = &cobra.Command{
 		fmt.Println("new repository installed and configured")
 		cfg.Repos = append(cfg.Repos, Repo{
 			Name:     basename,
-			Location: localRepoGit,
+			Location: localRepo,
 		})
 
 		yfg, err := yaml.Marshal(cfg)
