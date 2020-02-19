@@ -34,7 +34,7 @@ var downloadCmd = &cobra.Command{
 			return err
 		}
 
-		projects := make([]string, len(cfg.Repos))
+		projects := make([]string, 0)
 		for _, repo := range cfg.Repos {
 			projects = append(projects, repo.Name)
 		}
