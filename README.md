@@ -20,8 +20,30 @@ if you wish to compile the source code, you can clone this repository and then r
 
 ## Usage
 
-Run the following commands:
+### Setup
 
-`$ logics setup`
-`$ logics install`
+The `setup` command should be called only once in order to configure the version control system. It downloads and install `git-lfs` and `lfs-folderstore`, let you specify the shared folder where the _remote_ repository is found, and the target directory where your (Logic) projects should be installed. The configuration is written on `$HOME/.logics.ylm`
 
+```
+$ logics setup`
+```
+
+### Install
+
+The `install` command scans the shared folder for repositories not yet installed, let you select the repository you want to pull and configures `git-lfs` to track audio files. If no target directory is specified the default folder specified during setup gets used
+
+### Download
+
+The `download` command let you sync up with the upstream by selecting a repo and download the latest changes
+
+```
+$ logics download
+```
+
+### Upload
+
+The `upload` command let you upload your changes to upstream if any
+
+```
+$ logics upload
+```
