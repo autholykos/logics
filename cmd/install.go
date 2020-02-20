@@ -86,7 +86,7 @@ var installCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("new repository installed and configured")
+		Print("new repository installed and configured")
 		cfg.Repos = append(cfg.Repos, Repo{
 			Name:     basename,
 			Location: localRepo,
@@ -101,7 +101,7 @@ var installCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("preferences saved")
+		Print("preferences saved")
 		return nil
 	},
 }
@@ -112,7 +112,7 @@ func cloneRepo(localRepo, remoteRepo string) error {
 	if err != nil {
 		return fmt.Errorf("error in cloning the repo: %v", err)
 	}
-	fmt.Println(out)
+	Print(out)
 	return nil
 }
 
@@ -129,7 +129,7 @@ func configureLFSFolderstore(localRepo, remoteRepo string) error {
 	if err := execGit(localRepo, "reset", "--hard", "master"); err != nil {
 		return err
 	}
-	fmt.Println("lfs-folderstore configured")
+	Print("lfs-folderstore configured")
 	return nil
 }
 
@@ -139,7 +139,7 @@ func execGit(localRepo string, args ...string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(out)
+	Print(out)
 	return nil
 }
 
@@ -155,15 +155,17 @@ func selectRepo(sharedDir string, conf *Conf) (string, error) {
 			continue
 		}
 
-		// we add all base names that have a .git folder in it
-		if _, err := os.Stat(path.Join(sharedDir, f.Name(), ".git")); !os.IsNotExist(err) {
-			repo := path.Join(sharedDir, f.Name())
-			if isAlreadyCloned(repo, conf) {
-				continue
-			}
-			// NOTE: projects are in the form [/path/to/project.git]
-			projects = append(projects, path.Join(sharedDir, f.Name()))
+		// candidate bare repository found
+		repo := path.Join(sharedDir, f.Name())
+		if !isBare(repo) {
+			continue
 		}
+
+		if isAlreadyCloned(repo, conf) {
+			continue
+		}
+		// NOTE: projects are in the form [/path/to/project.git]
+		projects = append(projects, path.Join(sharedDir, f.Name()))
 	}
 
 	if len(projects) == 0 {
@@ -177,6 +179,15 @@ func selectRepo(sharedDir string, conf *Conf) (string, error) {
 
 	_, repo, err := prompt.Run()
 	return repo, err
+}
+
+func isBare(repo string) bool {
+	out, err := common.ExecCmd("git", "-C", repo, "rev-parse", "--is-bare-repository")
+	if err != nil {
+		return false
+	}
+
+	return strings.TrimSpace(out) == "true"
 }
 
 func isAlreadyCloned(repo string, conf *Conf) bool {

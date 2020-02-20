@@ -16,8 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/autholykos/logics/pkg/common"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -54,7 +52,7 @@ var downloadCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(out)
+		Print(out)
 		return nil
 	},
 }

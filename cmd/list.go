@@ -16,8 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,7 +32,7 @@ var listCmd = &cobra.Command{
 		}
 
 		for _, repo := range cfg.Repos {
-			fmt.Println(repo.Name)
+			Print(repo.Name)
 		}
 		return nil
 	},

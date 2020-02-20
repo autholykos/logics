@@ -16,7 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
+	"errors"
+	"strings"
 
 	"github.com/autholykos/logics/pkg/common"
 	"github.com/manifoldco/promptui"
@@ -45,25 +46,20 @@ var uploadCmd = &cobra.Command{
 		}
 
 		i, _, err := prompt.Run()
-		fmt.Println(i)
 		if err != nil {
 			return err
 		}
 
-		msg, _ := cmd.PersistentFlags().GetString("message")
-
-		for _, args := range [][]string{
-			[]string{"add", "-A", "."},
-			[]string{"commit", "-m", msg},
-			[]string{"push", "origin", "master"},
-		} {
-			nargs := append([]string{"-C", cfg.Repos[i].Location}, args...)
-			out, err := common.ExecCmd("git", nargs...)
-			if err != nil {
-				return err
-			}
-			fmt.Println(out)
+		repo := cfg.Repos[i].Location
+		if err := checkChanges(repo); err != nil {
+			return err
 		}
+
+		msg, _ := cmd.PersistentFlags().GetString("message")
+		if err := push(repo, msg); err != nil {
+			return err
+		}
+
 		return nil
 	},
 }
@@ -76,4 +72,37 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	uploadCmd.PersistentFlags().StringP("message", "m", "committing work on Logic", "specify a message for your commit")
+}
+
+func checkChanges(repo string) error {
+
+	out, err := common.ExecCmd("git", "-C", repo, "status", "--porcelain")
+	if err != nil {
+		return err
+	}
+
+	if len(strings.TrimSpace(out)) == 0 {
+		return errors.New("no changes detected: nothing to do!")
+	}
+
+	Print("Following changes have been detected for", repo)
+	Print(out)
+	return nil
+}
+
+func push(repo, msg string) error {
+	for _, args := range [][]string{
+		[]string{"add", "-A", "."},
+		[]string{"commit", "-m", msg},
+		[]string{"push", "origin", "master"},
+	} {
+		nargs := append([]string{"-C", repo}, args...)
+		out, err := common.ExecCmd("git", nargs...)
+		if err != nil {
+			return err
+		}
+		Print(out)
+	}
+
+	return nil
 }

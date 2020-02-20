@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -78,6 +79,12 @@ func WriteYaml(conf *Conf) error {
 		return err
 	}
 	return nil
+}
+
+func Print(out ...interface{}) {
+	if len(strings.TrimSpace(out[0].(string))) > 0 {
+		fmt.Println(out...)
+	}
 }
 
 func init() {

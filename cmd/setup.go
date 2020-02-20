@@ -70,7 +70,7 @@ func Setup() error {
 	cfg := strings.TrimSpace(viper.ConfigFileUsed())
 	if len(cfg) > 0 {
 		if !common.YNPrompt(fmt.Sprintf("A setup was likely already run (and created the configuration at %s). Do you want to re-run the setup?", cfg)) {
-			fmt.Println("Okidokey")
+			Print("Okidokey")
 			return nil
 		}
 	}
@@ -91,17 +91,17 @@ func Setup() error {
 	if err := WriteYaml(conf); err != nil {
 		return fmt.Errorf("Something went wrong with writing config file %s, %v", cfg, err)
 	}
-	fmt.Println("Preferences saved", cfg)
+	Print("Preferences saved", cfg)
 
 	if err := common.InstallGitLFS(tmpDir); err != nil {
 		return err
 	}
-	fmt.Println("git-lfs installed", cfg)
+	Print("git-lfs installed", cfg)
 
 	if err := common.InstallLFSFolderstore(tmpDir); err != nil {
 		return err
 	}
-	fmt.Println("lfs-folderstore installed", cfg)
+	Print("lfs-folderstore installed", cfg)
 	return nil
 }
 

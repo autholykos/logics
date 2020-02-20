@@ -18,5 +18,5 @@ package main
 import "github.com/autholykos/logics/cmd"
 
 func main() {
-  cmd.Execute()
+	cmd.Execute()
 }
