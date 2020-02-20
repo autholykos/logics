@@ -6,10 +6,22 @@ This program helps to install the necessary tools for starting up and maintainin
 
 * MacOSX: from Mojave up
 * git (minimum version 2.0): version control system used by this program
-* Dropbox shared folder: the project relies on Dropbox as "remote" storage where the git repositories are stored, which needs to be made available to the program in order to function properly.
+* shared folder: the project relies on shared folder (Dropbox)  as "remote" storage where the git repositories are stored, which needs to be made available to the program in order to function properly.
 
 ## Dependencies
 
 The program will download and install the following programs on the local system:
 * git-lfs: git support for large file system
 * lfs-folderstore: shared folder agent for git-lfs
+
+## Installation
+
+if you wish to compile the source code, you can clone this repository and then run `go install` directly in the project root. Releases will be available soon
+
+## Usage
+
+Run the following commands:
+
+`$ logics setup`
+`$ logics install`
+
