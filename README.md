@@ -16,7 +16,7 @@ The program will download and install the following programs on the local system
 
 ## Installation
 
-You can get the compiled binary in the [release page](./releases). At the moment the available packages are for MACOS and linux.
+You can get the compiled binary in the [release page](https://github.com/autholykos/logics/releases). At the moment the available packages are for MACOS and linux.
 If you wish to compile the source code, you need `go v1.11` up, clone this repository and then run `go install` directly in the project root.
 
 ## Usage
