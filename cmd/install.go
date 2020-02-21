@@ -69,7 +69,7 @@ var installCmd = &cobra.Command{
 		if err := viper.Unmarshal(cfg); err != nil {
 			return err
 		}
-		remoteRepo, err := selectRepo(sharedDir, cfg)
+		remoteRepo, err := selectRemoteRepo(sharedDir, cfg)
 		if err != nil {
 			return err
 		}
@@ -143,7 +143,7 @@ func execGit(localRepo string, args ...string) error {
 	return nil
 }
 
-func selectRepo(sharedDir string, conf *Conf) (string, error) {
+func selectRemoteRepo(sharedDir string, conf *Conf) (string, error) {
 	projects := make([]string, 0)
 	files, err := ioutil.ReadDir(sharedDir)
 	if err != nil {
